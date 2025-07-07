@@ -9,8 +9,10 @@ import matplotlib.pyplot as plt
 import os
 import datetime
 import io
-from pathlib import path
+from pathlib import Path
+import traceback
 
+# ------------------ PAGE CONFIG ------------------
 st.set_page_config(
     page_title="Sales Analyzer",
     page_icon="📊",
@@ -18,6 +20,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+# ------------------ CUSTOM CSS ------------------
 st.markdown("""
     <style>
     .main {
@@ -41,15 +44,24 @@ st.markdown("""
 
 # ------------------ TITLE ------------------
 st.markdown("## 📊 Sales Analyzer")
-st.caption("Upload your sales CSV file to begin.")
 
-# ------------------ FILE UPLOAD ------------------
-with st.container():
+# ------------------ WELCOME SCREEN ------------------
+uploaded_file = st.file_uploader("Upload your sales CSV file", type=["csv"])
+if not uploaded_file:
+    st.markdown("### 👋 Welcome to Sales Analyzer!")
+    st.markdown("This tool helps you explore, filter, and export your sales data with ease.")
+    st.markdown("""
+    - 📤 Upload a `.csv` file with columns like `Sales Rep`, `Client`, `Deal Size`, `Date`, and `Status`.
+    - 📊 Instantly get metrics like revenue, win rate, and deal insights.
+    - 💾 Export results to CSV or PNG for reporting.
+    """)
+    st.markdown("---")
+
+    # Upload container with tips
     st.markdown('<div class="upload-box">', unsafe_allow_html=True)
-    uploaded_file = st.file_uploader(" ", type=["csv"], label_visibility="collapsed")
+    st.empty()  # Keeps spacing
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # ------------------ TIPS ------------------
     st.markdown("""
         <div class="tips-box">
             ✅ <b>Tips:</b><br>
@@ -59,12 +71,13 @@ with st.container():
         </div>
     """, unsafe_allow_html=True)
 
-    # Optional download sample CSV button
+    # Sample CSV download
     sample_path = Path("sample.csv")
     if sample_path.exists():
         with open(sample_path, "rb") as f:
             st.download_button("📄 Download sample CSV", f, file_name="sample.csv", mime="text/csv")
 
+# ------------------ MAIN APP ------------------
 if uploaded_file:
     try:
         df = pd.read_csv(uploaded_file)
@@ -73,22 +86,24 @@ if uploaded_file:
         df['Deal Size'] = pd.to_numeric(df['Deal Size'], errors='coerce')
         df.dropna(subset=['Date', 'Deal Size'], inplace=True)
 
-        st.success("File loaded and cleaned.")
+        st.success("✅ File loaded and cleaned.")
 
-        # Sidebar Filters
+        # ------------------ FILTERS ------------------
         st.sidebar.header("🧰 Filter Options")
         sales_reps = df['Sales Rep'].dropna().unique().tolist()
         selected_rep = st.sidebar.selectbox("Sales Rep:", ["All"] + sales_reps)
 
         status_options = ["Closed", "Lost", "Both"]
         default_status = st.session_state.get("status_filter", "Closed")
-        selected_status = st.sidebar.selectbox("Deal Status:", options=status_options, index=status_options.index(default_status))
+        selected_status = st.sidebar.selectbox("Deal Status:", status_options, index=status_options.index(default_status))
         st.session_state["status_filter"] = selected_status
 
-        start_date = st.sidebar.date_input("Start Date", value=None)
-        end_date = st.sidebar.date_input("End Date", value=None)
+        start_date = st.sidebar.date_input("Start Date", value=st.session_state.get("start_date", None))
+        end_date = st.sidebar.date_input("End Date", value=st.session_state.get("end_date", None))
+        st.session_state["start_date"] = start_date
+        st.session_state["end_date"] = end_date
 
-        # Apply filters
+        # ------------------ FILTER APPLICATION ------------------
         filtered_df = df.copy()
         if selected_rep != "All":
             filtered_df = filtered_df[filtered_df['Sales Rep'] == selected_rep]
@@ -100,12 +115,12 @@ if uploaded_file:
             filtered_df = filtered_df[filtered_df['Date'] <= pd.to_datetime(end_date)]
 
         if filtered_df.empty:
-            st.warning("No results found with these filters.")
+            st.warning("⚠️ No results found with these filters.")
         else:
-            st.success(f"{len(filtered_df)} rows match your criteria.")
+            st.success(f"🔍 {len(filtered_df)} rows match your criteria.")
 
-            # Sales Summary
-            st.subheader("📈 Sales Summary")
+            # ------------------ SALES SUMMARY ------------------
+            st.markdown("### 📈 Sales Summary")
             closed_deals = filtered_df[filtered_df['Status'].str.lower() == 'closed']
             lost_deals = filtered_df[filtered_df['Status'].str.lower() == 'lost']
 
@@ -113,12 +128,11 @@ if uploaded_file:
                 total_revenue = closed_deals['Deal Size'].sum()
                 st.metric("💰 Total Revenue (Closed Deals)", f"${total_revenue:,.2f}")
 
-                # --- New Detailed Deals Table ---
+                # ------------------ CLOSED DEALS TABLE ------------------
                 st.subheader("📋 Detailed Deals Closed")
-                detailed_deals = closed_deals[['Sales Rep', 'Client', 'Deal Size', 'Date']].sort_values(by='Sales Rep')
-                st.dataframe(detailed_deals, hide_index=True)
+                st.dataframe(closed_deals[['Sales Rep', 'Client', 'Deal Size', 'Date']].sort_values(by='Sales Rep'), hide_index=True)
 
-                # --- Revenue & Deal Count by Rep + Clients ---
+                # ------------------ STATS PER REP ------------------
                 st.subheader("📦 Revenue, Deal Count, Clients per Rep")
                 rep_stats = closed_deals.groupby("Sales Rep").agg(
                     Revenue=("Deal Size", "sum"),
@@ -128,11 +142,11 @@ if uploaded_file:
                 rep_stats["Revenue"] = rep_stats["Revenue"].map("${:,.2f}".format)
                 st.dataframe(rep_stats, hide_index=True)
 
-                # --- Win Rate ---
+                # ------------------ WIN RATE ------------------
                 win_rate = len(closed_deals) / len(filtered_df)
                 st.metric("✅ Win Rate", f"{win_rate:.2%}")
 
-                # --- Monthly Revenue ---
+                # ------------------ MONTHLY REVENUE ------------------
                 monthly_df = closed_deals.groupby(closed_deals['Date'].dt.to_period('M'))['Deal Size'].sum().reset_index()
                 monthly_df.columns = ['Month', 'Revenue']
                 monthly_df['Month'] = monthly_df['Month'].astype(str)
@@ -141,28 +155,29 @@ if uploaded_file:
                 st.subheader("📅 Monthly Revenue Breakdown")
                 st.dataframe(monthly_df, hide_index=True)
 
-                # --- Chart: Deals per Rep ---
+                # ------------------ DEALS PER REP CHART ------------------
                 st.subheader("📊 Deals per Sales Rep Chart")
                 deals_per_rep = closed_deals['Sales Rep'].value_counts().reset_index()
                 deals_per_rep.columns = ["Sales Rep", "Deals Closed"]
 
-                fig, ax = plt.subplots()
-                deals_per_rep.set_index("Sales Rep")["Deals Closed"].plot(kind='bar', ax=ax, color='#4CAF50')
-                ax.set_ylabel('Number of Deals')
-                ax.set_xlabel('Sales Rep')
-                plt.xticks(rotation=0)
-                plt.tight_layout()
-                st.pyplot(fig)
+                with st.spinner("Generating chart..."):
+                    fig, ax = plt.subplots()
+                    deals_per_rep.set_index("Sales Rep")["Deals Closed"].plot(kind='bar', ax=ax, color='#4CAF50')
+                    ax.set_ylabel('Number of Deals')
+                    ax.set_xlabel('Sales Rep')
+                    plt.xticks(rotation=0)
+                    plt.tight_layout()
+                    st.pyplot(fig)
 
             else:
                 st.warning("No closed deals found.")
 
-            # Lost Deals Table
+            # ------------------ LOST DEALS ------------------
             if not lost_deals.empty:
                 st.subheader("❌ Lost Deals")
                 st.dataframe(lost_deals[['Sales Rep', 'Client', 'Deal Size', 'Date']], hide_index=True)
 
-            # Export Options
+            # ------------------ EXPORT OPTIONS ------------------
             st.subheader("📤 Export Options")
             if not closed_deals.empty:
                 closed_csv = closed_deals.to_csv(index=False).encode('utf-8')
@@ -175,6 +190,7 @@ if uploaded_file:
                 fig.savefig(buf, format='png')
                 st.download_button("🖼️ Download Chart as PNG", buf.getvalue(), "deals_chart.png", "image/png")
 
+            # ------------------ MANUAL FILE EXPORT ------------------
             st.subheader("💾 Manual File Export")
             export_folder = st.text_input("Folder path:", value=os.getcwd())
             base_name = st.text_input("File base name:", value=f"export_{datetime.datetime.now():%Y%m%d_%H%M%S}")
@@ -184,15 +200,13 @@ if uploaded_file:
                     closed_deals.to_csv(os.path.join(export_folder, f"{base_name}_closed.csv"), index=False)
                     monthly_df.to_csv(os.path.join(export_folder, f"{base_name}_monthly.csv"), index=False)
                     fig.savefig(os.path.join(export_folder, f"{base_name}_chart.png"))
-                    st.success("Files saved successfully.")
+                    st.success("✅ Files saved successfully.")
                 except Exception as e:
-                    st.error(f"Export failed: {e}")
+                    st.error(f"❌ Export failed: {e}")
+
     except Exception as e:
-        st.error(f"Error loading file: {e}")
-else:
-    st.info("Upload a CSV file to begin.")
-
-
+        st.error("🚨 Error loading file:")
+        st.text(traceback.format_exc())
 
 
 # In[ ]:
