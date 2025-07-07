@@ -9,48 +9,61 @@ import matplotlib.pyplot as plt
 import os
 import datetime
 import io
+from pathlib import path
 
-st.set_page_config(page_title="Sales Analyzer", layout="centered")
-
-# Custom Welcome Screen
-st.markdown(
-    """
-    <style>
-    .welcome-box {
-        background-color: #f0f2f6;
-        padding: 20px;
-        border-radius: 12px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    }
-    .welcome-title {
-        font-size: 24px;
-        font-weight: 600;
-        color: #333333;
-        margin-bottom: 8px;
-    }
-    .welcome-subtitle {
-        font-size: 16px;
-        color: #666666;
-    }
-    </style>
-
-    <div class="welcome-box">
-        <div class="welcome-title">Welcome to Sales Analyzer</div>
-        <div class="welcome-subtitle">
-            Upload your sales data to discover revenue trends, rep performance, and conversion insights.
-            <br><br>
-            Start by uploading a CSV file using the uploader below.
-        </div>
-    </div>
-    """,
-    unsafe_allow_html=True
+st.set_page_config(
+    page_title="Sales Analyzer",
+    page_icon="📊",
+    layout="centered",
+    initial_sidebar_state="collapsed"
 )
 
+st.markdown("""
+    <style>
+    .main {
+        padding-top: 2rem;
+    }
+    .upload-box {
+        border: 2px dashed #ccc;
+        padding: 2rem;
+        border-radius: 10px;
+        background-color: #f9f9f9;
+    }
+    .tips-box {
+        background-color: #eef6ff;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-top: 1rem;
+        font-size: 0.95rem;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
-st.title("📊 Sales Analyzer")
+# ------------------ TITLE ------------------
+st.markdown("## 📊 Sales Analyzer")
+st.caption("Upload your sales CSV file to begin.")
 
-uploaded_file = st.file_uploader("Upload your sales CSV file", type=["csv"])
+# ------------------ FILE UPLOAD ------------------
+with st.container():
+    st.markdown('<div class="upload-box">', unsafe_allow_html=True)
+    uploaded_file = st.file_uploader(" ", type=["csv"], label_visibility="collapsed")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+    # ------------------ TIPS ------------------
+    st.markdown("""
+        <div class="tips-box">
+            ✅ <b>Tips:</b><br>
+            • File must be a CSV with headers<br>
+            • Max size: 200MB<br>
+            • We don’t store or share your data<br>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # Optional download sample CSV button
+    sample_path = Path("sample.csv")
+    if sample_path.exists():
+        with open(sample_path, "rb") as f:
+            st.download_button("📄 Download sample CSV", f, file_name="sample.csv", mime="text/csv")
 
 if uploaded_file:
     try:
