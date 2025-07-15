@@ -9,6 +9,7 @@ import datetime
 import io
 from pathlib import Path
 import traceback
+from usage_logger import log_usage
 
 # ------------------ PAGE CONFIG ------------------
 st.set_page_config(
