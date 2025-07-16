@@ -1,38 +1,25 @@
 import gspread
 import datetime
 import streamlit as st
+import pandas as pd
 
-ddef log_usage(event_type, metadata=None):
+def log_usage(event_type, metadata=None):
+    """Logs an event with optional metadata to the 'streamlit log' Google Sheet."""
     try:
         gc = gspread.service_account_from_dict(st.secrets["google_sheets"])
         worksheet = gc.open("streamlit log").sheet1
-        timestamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
-        worksheet.append_row([timestamp, event_type, ""])  # Always blank
-    except Exception as e:
-        st.warning(f"⚠️ Failed to log usage: {e}")
-
-
-        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        metadata_str = str(metadata) if metadata else ""
-
+        timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+        metadata_str = "" if metadata is None else str(metadata)
         worksheet.append_row([timestamp, event_type, metadata_str])
-    except Exception as e:
-        st.warning(f"Failed to log usage: {e}")
+    except Exception:
+        pass  # Silently fail if secrets or logging fails
 
 def read_logs():
-    """
-    Reads the full usage log from the 'streamlit log' Google Sheet.
-
-    Returns:
-        pd.DataFrame: The log as a pandas DataFrame with columns [Timestamp, Event, Metadata]
-    """
-    import pandas as pd
+    """Reads the full usage log as a pandas DataFrame."""
     try:
         gc = gspread.service_account_from_dict(st.secrets["google_sheets"])
         worksheet = gc.open("streamlit log").sheet1
         data = worksheet.get_all_records()
         return pd.DataFrame(data)
-    except Exception as e:
-        st.warning(f"⚠️ Failed to read logs: {e}")
+    except Exception:
         return pd.DataFrame(columns=["Timestamp", "Event", "Metadata"])
-
