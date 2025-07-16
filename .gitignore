@@ -205,3 +205,8 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Local Streamlit secrets and keys (do not push to GitHub)
+service_account.json
+.streamlit/
+
