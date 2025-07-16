@@ -89,10 +89,12 @@ else:
 
 # ------------------------- 📋 RAW LOGS -------------------------
 st.markdown("### 🧾 Raw Logs")
+display_cols = [col for col in ["Timestamp", "Event", "Metadata"] if col in filtered_df.columns]
 st.dataframe(
-    filtered_df[["Timestamp", "Event", "Metadata"]].sort_values(by="Timestamp", ascending=False),
+    filtered_df[display_cols].sort_values(by="Timestamp", ascending=False),
     use_container_width=True
 )
+
 
 # ------------------------- 🚪 LOGOUT -------------------------
 st.markdown("---")
