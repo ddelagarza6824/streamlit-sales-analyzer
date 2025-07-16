@@ -2,16 +2,12 @@ import gspread
 import datetime
 import streamlit as st
 
-def log_usage(event_type, metadata=None):
-    """
-    Logs an event with optional metadata to the 'streamlit log' Google Sheet.
-    """
+ddef log_usage(event_type, metadata=None):
     try:
         gc = gspread.service_account_from_dict(st.secrets["google_sheets"])
         worksheet = gc.open("streamlit log").sheet1
-        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        metadata_str = str(metadata) if metadata else ""
-        worksheet.append_row([timestamp, event_type, metadata_str])
+        timestamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+        worksheet.append_row([timestamp, event_type, ""])  # Always blank
     except Exception as e:
         st.warning(f"⚠️ Failed to log usage: {e}")
 

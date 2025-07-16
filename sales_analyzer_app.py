@@ -86,7 +86,7 @@ if not uploaded_file:
             ✅ <b>Tips:</b><br>
             • File must be a CSV with headers<br>
             • Max size: 200MB<br>
-            • We don’t store or share your data<br>
+            • No uploaded data is stored/shared, and usage is tracked anonymously for internal app improvement.<br>
         </div>
     """, unsafe_allow_html=True)
 
