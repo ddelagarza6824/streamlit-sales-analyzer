@@ -12,7 +12,9 @@ def log_usage(event_type, metadata=None):
     """
     try:
         gc = gspread.service_account_from_dict(st.secrets["google_sheets"])
-        worksheet = gc.open("streamlit log").sheet1
+    except Exception:
+        return  # Skip logging locally if secrets aren't available
+
 
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         metadata_str = str(metadata) if metadata else ""

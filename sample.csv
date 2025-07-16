@@ -1,0 +1,7 @@
+Sales Rep,Client,Deal Size,Date,Status
+Alice,Acme Corp,12000,2024-01-15,Closed
+Bob,Globex,18000,2024-02-10,Closed
+Alice,Soylent,9500,2024-02-28,Lost
+Charlie,Initech,15000,2024-03-15,Closed
+Bob,Hooli,20000,2024-04-10,Lost
+Charlie,Umbrella,17000,2024-04-25,Closed
