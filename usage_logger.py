@@ -5,15 +5,15 @@ import streamlit as st
 def log_usage(event_type, metadata=None):
     """
     Logs an event with optional metadata to the 'streamlit log' Google Sheet.
-
-    Args:
-        event_type (str): The type/name of the event.
-        metadata (dict or str, optional): Additional info about the event.
     """
     try:
         gc = gspread.service_account_from_dict(st.secrets["google_sheets"])
-    except Exception:
-        return  # Skip logging locally if secrets aren't available
+        worksheet = gc.open("streamlit log").sheet1
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        metadata_str = str(metadata) if metadata else ""
+        worksheet.append_row([timestamp, event_type, metadata_str])
+    except Exception as e:
+        st.warning(f"⚠️ Failed to log usage: {e}")
 
 
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
