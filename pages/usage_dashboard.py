@@ -53,13 +53,13 @@ with col1:
     selected_event = st.selectbox("Event Type", ["All"] + sorted(logs_df["Event"].unique()))
 
 with col2:
-    date_range = st.date_input("Date Range")
+    date_range = st.date_input("Date Range", value=[], key="date_range")
 
 filtered_df = logs_df.copy()
 if selected_event != "All":
     filtered_df = filtered_df[filtered_df["Event"] == selected_event]
 
-if date_range and len(date_range) == 2:
+if isinstance(date_range, (list,tuple)) and len(date_range) == 2:
     start, end = date_range
     filtered_df = filtered_df[
         (filtered_df["Timestamp"].dt.date >= start) &
